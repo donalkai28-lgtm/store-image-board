@@ -1,0 +1,10 @@
+{
+  "name": "store-image-board",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A static asset board MVP for store image collection records.",
+  "scripts": {
+    "dev": "npx serve .",
+    "start": "npx serve ."
+  }
+}

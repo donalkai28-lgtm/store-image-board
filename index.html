@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>素材看板 MVP</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="page">
+      <section class="table-panel" aria-live="polite">
+        <table class="asset-table">
+          <thead>
+            <tr>
+              <th>AppID</th>
+              <th>采集时间</th>
+              <th>品类</th>
+              <th>商店图</th>
+              <th>备注</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="appid-cell">PurpleSource221</td>
+              <td class="captured-cell">2026/05/28</td>
+              <td class="category-cell">益智</td>
+              <td>
+                <div class="store-images">
+                  <img src="https://picsum.photos/seed/app-1/360/640" alt="商店图 1">
+                  <img src="https://picsum.photos/seed/app-2/360/640" alt="商店图 2">
+                  <img src="https://picsum.photos/seed/app-3/360/640" alt="商店图 3">
+                  <img src="https://picsum.photos/seed/app-4/360/640" alt="商店图 4">
+                  <img src="https://picsum.photos/seed/app-5/360/640" alt="商店图 5">
+                  <img src="https://picsum.photos/seed/app-6/360/640" alt="商店图 6">
+                  <img src="https://picsum.photos/seed/app-7/360/640" alt="商店图 7">
+                  <img src="https://picsum.photos/seed/app-8/360/640" alt="商店图 8">
+                </div>
+              </td>
+              <td class="note-cell">来自 .screen-list，iPhone 商店图。</td>
+              <td>
+                <button class="download-record" type="button">下载全部</button>
+                <button class="remove-record" type="button">删除</button>
+              </td>
+            </tr>
+            <tr>
+              <td class="appid-cell">MatchTile-1029</td>
+              <td class="captured-cell">2026/05/27</td>
+              <td class="category-cell">休闲</td>
+              <td>
+                <div class="store-images">
+                  <img src="https://picsum.photos/seed/match-1/360/640" alt="商店图 1">
+                  <img src="https://picsum.photos/seed/match-2/360/640" alt="商店图 2">
+                  <img src="https://picsum.photos/seed/match-3/360/640" alt="商店图 3">
+                  <img src="https://picsum.photos/seed/match-4/360/640" alt="商店图 4">
+                  <img src="https://picsum.photos/seed/match-5/360/640" alt="商店图 5">
+                  <img src="https://picsum.photos/seed/match-6/360/640" alt="商店图 6">
+                </div>
+              </td>
+              <td class="note-cell">手动导入，待复核素材质量。</td>
+              <td>
+                <button class="download-record" type="button">下载全部</button>
+                <button class="remove-record" type="button">删除</button>
+              </td>
+            </tr>
+            <tr>
+              <td class="appid-cell">PuzzleGarden-8842</td>
+              <td class="captured-cell">2026/05/26</td>
+              <td class="category-cell">解谜</td>
+              <td>
+                <div class="store-images">
+                  <img src="https://picsum.photos/seed/puzzle-1/360/640" alt="商店图 1">
+                  <img src="https://picsum.photos/seed/puzzle-2/360/640" alt="商店图 2">
+                  <img src="https://picsum.photos/seed/puzzle-3/360/640" alt="商店图 3">
+                  <img src="https://picsum.photos/seed/puzzle-4/360/640" alt="商店图 4">
+                  <img src="https://picsum.photos/seed/puzzle-5/360/640" alt="商店图 5">
+                  <img src="https://picsum.photos/seed/puzzle-6/360/640" alt="商店图 6">
+                  <img src="https://picsum.photos/seed/puzzle-7/360/640" alt="商店图 7">
+                  <img src="https://picsum.photos/seed/puzzle-8/360/640" alt="商店图 8">
+                </div>
+              </td>
+              <td class="note-cell">英文区素材，截图数量完整。</td>
+              <td>
+                <button class="download-record" type="button">下载全部</button>
+                <button class="remove-record" type="button">删除</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+    <div id="imagePreview" class="image-preview" aria-hidden="true">
+      <img src="" alt="">
+    </div>
+    <script src="preview.js"></script>
+  </body>
+</html>
