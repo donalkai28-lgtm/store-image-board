@@ -3,6 +3,7 @@ const SUPABASE_KEY = "sb_publishable_eNa9BtBpXWDs0vM_IXNg-g_72ls9pYe";
 
 const tableBody = document.querySelector("#assetTableBody");
 const toast = document.querySelector("#toast");
+const categoryOptions = document.querySelector("#categoryOptions");
 
 function showToast(message, type = "success") {
   toast.textContent = message;
@@ -19,7 +20,16 @@ function formatDate(value) {
     return "未知";
   }
 
-  return value.replaceAll("-", "/");
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value).replaceAll("-", "/");
+  }
+
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
 function sanitizeFilename(value) {
@@ -34,8 +44,8 @@ function wait(ms) {
 
 async function fetchAssetRecords() {
   const query = new URLSearchParams({
-    select: "id,app_id,captured_date,category,note,asset_images(image_url,sort_order)",
-    order: "captured_date.desc,created_at.desc",
+    select: "id,app_id,product_url,captured_date,category,note,created_at,asset_images(image_url,sort_order)",
+    order: "created_at.desc",
   });
 
   const response = await fetch(`${SUPABASE_URL}/rest/v1/asset_records?${query}`, {
@@ -72,6 +82,56 @@ function createTextCell(className, text) {
   return cell;
 }
 
+function createProductCell(record) {
+  const cell = document.createElement("td");
+  const productName = record.app_id || "未命名产品";
+
+  cell.className = "product-cell";
+
+  if (record.product_url) {
+    const link = document.createElement("a");
+    link.href = record.product_url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = productName;
+    cell.append(link);
+    return cell;
+  }
+
+  cell.textContent = productName;
+  return cell;
+}
+
+function createCategoryCell(record) {
+  const cell = document.createElement("td");
+  const input = document.createElement("input");
+
+  cell.className = "category-cell";
+  input.className = "category-input";
+  input.type = "text";
+  input.list = "categoryOptions";
+  input.value = record.category || "";
+  input.placeholder = "填写品类";
+  input.dataset.field = "category";
+
+  cell.append(input);
+  return cell;
+}
+
+function createNoteCell(record) {
+  const cell = document.createElement("td");
+  const textarea = document.createElement("textarea");
+
+  cell.className = "note-cell";
+  textarea.className = "note-input";
+  textarea.value = record.note || "";
+  textarea.placeholder = "填写备注";
+  textarea.dataset.field = "note";
+
+  cell.append(textarea);
+  return cell;
+}
+
 function createImageCell(record) {
   const cell = document.createElement("td");
   const strip = document.createElement("div");
@@ -82,7 +142,7 @@ function createImageCell(record) {
   for (const [index, image] of images.entries()) {
     const img = document.createElement("img");
     img.src = image.image_url;
-    img.alt = `${record.app_id} 商店图 ${index + 1}`;
+    img.alt = `${record.app_id || "产品"} 商店图 ${index + 1}`;
     img.loading = "lazy";
     strip.append(img);
   }
@@ -93,26 +153,40 @@ function createImageCell(record) {
 
 function createActionCell(record) {
   const cell = document.createElement("td");
+  const saveButton = document.createElement("button");
   const downloadButton = document.createElement("button");
-  const deleteButton = document.createElement("button");
+
+  saveButton.className = "save-record";
+  saveButton.type = "button";
+  saveButton.textContent = "保存";
+  saveButton.addEventListener("click", () => saveRecordEdits(record.id, cell.closest("tr")));
 
   downloadButton.className = "download-record";
   downloadButton.type = "button";
-  downloadButton.textContent = "下载全部";
+  downloadButton.textContent = "下载";
   downloadButton.addEventListener("click", () => downloadRecordImages(record));
 
-  deleteButton.className = "remove-record";
-  deleteButton.type = "button";
-  deleteButton.textContent = "删除";
-  deleteButton.disabled = true;
-  deleteButton.title = "当前公开看板只开放读取，删除需要后台权限";
-
-  cell.append(downloadButton, deleteButton);
+  cell.append(saveButton, downloadButton);
   return cell;
+}
+
+function renderCategoryOptions(records) {
+  const categories = [...new Set(records.map((record) => record.category).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "zh-CN"),
+  );
+
+  categoryOptions.replaceChildren(
+    ...categories.map((category) => {
+      const option = document.createElement("option");
+      option.value = category;
+      return option;
+    }),
+  );
 }
 
 function renderRecords(records) {
   tableBody.replaceChildren();
+  renderCategoryOptions(records);
 
   if (records.length === 0) {
     renderEmpty("暂无素材数据。等插件或后台写入 Supabase 后，这里会自动显示。");
@@ -121,18 +195,51 @@ function renderRecords(records) {
 
   for (const record of records) {
     const row = document.createElement("tr");
+    row.dataset.recordId = record.id;
 
     row.append(
-      createTextCell("appid-cell", record.app_id),
-      createTextCell("captured-cell", formatDate(record.captured_date)),
-      createTextCell("category-cell", record.category || "未填写"),
+      createProductCell(record),
+      createTextCell("captured-cell", formatDate(record.created_at || record.captured_date)),
+      createCategoryCell(record),
       createImageCell(record),
-      createTextCell("note-cell", record.note || "无"),
+      createNoteCell(record),
       createActionCell(record),
     );
 
     tableBody.append(row);
   }
+}
+
+async function saveRecordEdits(recordId, row) {
+  const category = row.querySelector('[data-field="category"]').value.trim();
+  const note = row.querySelector('[data-field="note"]').value.trim();
+
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/asset_records?id=eq.${recordId}`, {
+    method: "PATCH",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({
+      category: category || null,
+      note: note || null,
+    }),
+  });
+
+  if (!response.ok) {
+    showToast(`保存失败：${response.status}`, "error");
+    return;
+  }
+
+  if (category && !Array.from(categoryOptions.options).some((option) => option.value === category)) {
+    const option = document.createElement("option");
+    option.value = category;
+    categoryOptions.append(option);
+  }
+
+  showToast("已保存品类和备注。");
 }
 
 async function downloadRecordImages(record) {
@@ -152,7 +259,7 @@ async function downloadRecordImages(record) {
       const link = document.createElement("a");
 
       link.href = objectUrl;
-      link.download = `${sanitizeFilename(record.app_id)}-${String(index + 1).padStart(2, "0")}.png`;
+      link.download = `${sanitizeFilename(record.app_id || "product")}-${String(index + 1).padStart(2, "0")}.png`;
       link.style.display = "none";
       document.body.append(link);
       link.click();

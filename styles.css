@@ -350,10 +350,20 @@ h1 {
   width: 140px;
 }
 
-.appid-cell {
+.product-cell {
   color: #0f172a;
   font-weight: 900;
   word-break: break-word;
+}
+
+.product-cell a {
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.product-cell a:hover {
+  color: var(--accent-dark);
+  text-decoration: underline;
 }
 
 .captured-cell,
@@ -373,6 +383,40 @@ h1 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: normal;
+}
+
+.category-input,
+.note-input {
+  width: 100%;
+  border: 1px solid #dbe5f0;
+  border-radius: 10px;
+  color: #334155;
+  background: rgb(255 255 255 / 78%);
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.category-input:focus,
+.note-input:focus {
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgb(59 130 246 / 12%);
+}
+
+.category-input {
+  height: 36px;
+  padding: 0 10px;
+  font-weight: 800;
+}
+
+.note-input {
+  height: 72px;
+  padding: 8px 10px;
+  resize: none;
+  line-height: 1.45;
 }
 
 .empty-cell {
@@ -426,6 +470,7 @@ h1 {
   font-weight: 900;
 }
 
+.save-record,
 .download-record,
 .remove-record {
   display: block;
@@ -441,8 +486,13 @@ h1 {
     transform 0.15s ease;
 }
 
-.download-record {
+.save-record {
   margin-bottom: 6px;
+  color: #1d4ed8;
+  background: linear-gradient(180deg, var(--soft-blue), #dbeafe);
+}
+
+.download-record {
   color: #047857;
   background: linear-gradient(180deg, var(--soft-green), #d1fae5);
 }
@@ -452,6 +502,7 @@ h1 {
   background: linear-gradient(180deg, var(--soft-red), #fee2e2);
 }
 
+.save-record:hover,
 .download-record:hover,
 .remove-record:hover {
   box-shadow:
