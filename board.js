@@ -104,17 +104,28 @@ function createProductCell(record) {
 
 function createCategoryCell(record) {
   const cell = document.createElement("td");
+  const wrap = document.createElement("div");
+  const select = document.createElement("select");
   const input = document.createElement("input");
 
   cell.className = "category-cell";
+  wrap.className = "category-editor";
+  select.className = "category-select";
+  select.dataset.field = "categorySelect";
+  input.dataset.field = "category";
   input.className = "category-input";
   input.type = "text";
-  input.list = "categoryOptions";
   input.value = record.category || "";
-  input.placeholder = "填写品类";
-  input.dataset.field = "category";
+  input.placeholder = "自定义";
 
-  cell.append(input);
+  select.addEventListener("change", () => {
+    if (select.value) {
+      input.value = select.value;
+    }
+  });
+
+  wrap.append(select, input);
+  cell.append(wrap);
   return cell;
 }
 
@@ -170,10 +181,12 @@ function createActionCell(record) {
   return cell;
 }
 
+function getCategoryValues(records) {
+  return [...new Set(records.map((record) => record.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-CN"));
+}
+
 function renderCategoryOptions(records) {
-  const categories = [...new Set(records.map((record) => record.category).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b, "zh-CN"),
-  );
+  const categories = getCategoryValues(records);
 
   categoryOptions.replaceChildren(
     ...categories.map((category) => {
@@ -182,6 +195,28 @@ function renderCategoryOptions(records) {
       return option;
     }),
   );
+}
+
+function syncCategorySelects(records) {
+  const categories = getCategoryValues(records);
+
+  for (const select of tableBody.querySelectorAll(".category-select")) {
+    const row = select.closest("tr");
+    const currentCategory = row.querySelector('[data-field="category"]').value;
+    const placeholder = document.createElement("option");
+
+    placeholder.value = "";
+    placeholder.textContent = categories.length > 0 ? "选择" : "暂无";
+    select.replaceChildren(placeholder);
+
+    for (const category of categories) {
+      const option = document.createElement("option");
+      option.value = category;
+      option.textContent = category;
+      option.selected = category === currentCategory;
+      select.append(option);
+    }
+  }
 }
 
 function renderRecords(records) {
@@ -208,6 +243,8 @@ function renderRecords(records) {
 
     tableBody.append(row);
   }
+
+  syncCategorySelects(records);
 }
 
 async function saveRecordEdits(recordId, row) {
@@ -239,6 +276,8 @@ async function saveRecordEdits(recordId, row) {
     categoryOptions.append(option);
   }
 
+  const records = await fetchAssetRecords();
+  renderRecords(records);
   showToast("已保存品类和备注。");
 }
 

@@ -1,8 +1,8 @@
 const preview = document.querySelector("#imagePreview");
 const previewImage = preview.querySelector("img");
 
-const PREVIEW_WIDTH = 260;
-const PREVIEW_HEIGHT = 462;
+const PREVIEW_MAX_WIDTH = 520;
+const PREVIEW_MAX_HEIGHT = 462;
 const GAP = 16;
 const EDGE = 16;
 
@@ -15,16 +15,28 @@ function placePreview(triggerImage) {
   const rowRect = triggerImage.closest("tr").getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
+  const ratio = triggerImage.naturalWidth && triggerImage.naturalHeight ? triggerImage.naturalWidth / triggerImage.naturalHeight : 9 / 16;
+  let previewWidth = PREVIEW_MAX_WIDTH;
+  let previewHeight = PREVIEW_MAX_HEIGHT;
+
+  if (ratio >= 1) {
+    previewHeight = Math.round(previewWidth / ratio);
+  } else {
+    previewWidth = Math.round(previewHeight * ratio);
+  }
+
+  preview.style.width = `${previewWidth}px`;
+  preview.style.height = `${previewHeight}px`;
 
   let x = stripRect.right + GAP;
-  let y = clamp(rowRect.top, EDGE, viewportHeight - PREVIEW_HEIGHT - EDGE);
+  let y = clamp(rowRect.top, EDGE, viewportHeight - previewHeight - EDGE);
 
-  if (x + PREVIEW_WIDTH > viewportWidth - EDGE) {
-    x = stripRect.left - PREVIEW_WIDTH - GAP;
+  if (x + previewWidth > viewportWidth - EDGE) {
+    x = stripRect.left - previewWidth - GAP;
   }
 
   if (x < EDGE) {
-    x = clamp(triggerImage.getBoundingClientRect().left - PREVIEW_WIDTH - GAP, EDGE, viewportWidth - PREVIEW_WIDTH - EDGE);
+    x = clamp(triggerImage.getBoundingClientRect().left - previewWidth - GAP, EDGE, viewportWidth - previewWidth - EDGE);
   }
 
   preview.style.left = `${x}px`;
