@@ -375,6 +375,14 @@ h1 {
   white-space: normal;
 }
 
+.empty-cell {
+  height: 160px;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .store-images {
   display: flex;
   flex-wrap: nowrap;

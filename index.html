@@ -20,70 +20,9 @@
               <th>操作</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="assetTableBody">
             <tr>
-              <td class="appid-cell">PurpleSource221</td>
-              <td class="captured-cell">2026/05/28</td>
-              <td class="category-cell">益智</td>
-              <td>
-                <div class="store-images">
-                  <img src="https://picsum.photos/seed/app-1/360/640" alt="商店图 1">
-                  <img src="https://picsum.photos/seed/app-2/360/640" alt="商店图 2">
-                  <img src="https://picsum.photos/seed/app-3/360/640" alt="商店图 3">
-                  <img src="https://picsum.photos/seed/app-4/360/640" alt="商店图 4">
-                  <img src="https://picsum.photos/seed/app-5/360/640" alt="商店图 5">
-                  <img src="https://picsum.photos/seed/app-6/360/640" alt="商店图 6">
-                  <img src="https://picsum.photos/seed/app-7/360/640" alt="商店图 7">
-                  <img src="https://picsum.photos/seed/app-8/360/640" alt="商店图 8">
-                </div>
-              </td>
-              <td class="note-cell">来自 .screen-list，iPhone 商店图。</td>
-              <td>
-                <button class="download-record" type="button">下载全部</button>
-                <button class="remove-record" type="button">删除</button>
-              </td>
-            </tr>
-            <tr>
-              <td class="appid-cell">MatchTile-1029</td>
-              <td class="captured-cell">2026/05/27</td>
-              <td class="category-cell">休闲</td>
-              <td>
-                <div class="store-images">
-                  <img src="https://picsum.photos/seed/match-1/360/640" alt="商店图 1">
-                  <img src="https://picsum.photos/seed/match-2/360/640" alt="商店图 2">
-                  <img src="https://picsum.photos/seed/match-3/360/640" alt="商店图 3">
-                  <img src="https://picsum.photos/seed/match-4/360/640" alt="商店图 4">
-                  <img src="https://picsum.photos/seed/match-5/360/640" alt="商店图 5">
-                  <img src="https://picsum.photos/seed/match-6/360/640" alt="商店图 6">
-                </div>
-              </td>
-              <td class="note-cell">手动导入，待复核素材质量。</td>
-              <td>
-                <button class="download-record" type="button">下载全部</button>
-                <button class="remove-record" type="button">删除</button>
-              </td>
-            </tr>
-            <tr>
-              <td class="appid-cell">PuzzleGarden-8842</td>
-              <td class="captured-cell">2026/05/26</td>
-              <td class="category-cell">解谜</td>
-              <td>
-                <div class="store-images">
-                  <img src="https://picsum.photos/seed/puzzle-1/360/640" alt="商店图 1">
-                  <img src="https://picsum.photos/seed/puzzle-2/360/640" alt="商店图 2">
-                  <img src="https://picsum.photos/seed/puzzle-3/360/640" alt="商店图 3">
-                  <img src="https://picsum.photos/seed/puzzle-4/360/640" alt="商店图 4">
-                  <img src="https://picsum.photos/seed/puzzle-5/360/640" alt="商店图 5">
-                  <img src="https://picsum.photos/seed/puzzle-6/360/640" alt="商店图 6">
-                  <img src="https://picsum.photos/seed/puzzle-7/360/640" alt="商店图 7">
-                  <img src="https://picsum.photos/seed/puzzle-8/360/640" alt="商店图 8">
-                </div>
-              </td>
-              <td class="note-cell">英文区素材，截图数量完整。</td>
-              <td>
-                <button class="download-record" type="button">下载全部</button>
-                <button class="remove-record" type="button">删除</button>
-              </td>
+              <td class="empty-cell" colspan="6">正在读取素材数据...</td>
             </tr>
           </tbody>
         </table>
@@ -92,6 +31,8 @@
     <div id="imagePreview" class="image-preview" aria-hidden="true">
       <img src="" alt="">
     </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="board.js"></script>
     <script src="preview.js"></script>
   </body>
 </html>
