@@ -28,15 +28,20 @@ function placePreview(triggerImage) {
   preview.style.width = `${previewWidth}px`;
   preview.style.height = `${previewHeight}px`;
 
-  let x = stripRect.right + GAP;
-  let y = clamp(rowRect.top, EDGE, viewportHeight - previewHeight - EDGE);
+  let x = clamp(stripRect.left, EDGE, viewportWidth - previewWidth - EDGE);
+  let y = rowRect.bottom + GAP;
 
-  if (x + previewWidth > viewportWidth - EDGE) {
-    x = stripRect.left - previewWidth - GAP;
+  if (y + previewHeight > viewportHeight - EDGE) {
+    y = rowRect.top - previewHeight - GAP;
   }
 
-  if (x < EDGE) {
-    x = clamp(triggerImage.getBoundingClientRect().left - previewWidth - GAP, EDGE, viewportWidth - previewWidth - EDGE);
+  if (y < EDGE) {
+    x = stripRect.right + GAP;
+    y = clamp(rowRect.top, EDGE, viewportHeight - previewHeight - EDGE);
+  }
+
+  if (x + previewWidth > viewportWidth - EDGE) {
+    x = viewportWidth - previewWidth - EDGE;
   }
 
   preview.style.left = `${x}px`;

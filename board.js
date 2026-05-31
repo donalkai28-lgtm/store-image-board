@@ -4,6 +4,7 @@ const SUPABASE_KEY = "sb_publishable_eNa9BtBpXWDs0vM_IXNg-g_72ls9pYe";
 const tableBody = document.querySelector("#assetTableBody");
 const toast = document.querySelector("#toast");
 const categoryOptions = document.querySelector("#categoryOptions");
+let currentRecords = [];
 
 function showToast(message, type = "success") {
   toast.textContent = message;
@@ -105,26 +106,37 @@ function createProductCell(record) {
 function createCategoryCell(record) {
   const cell = document.createElement("td");
   const wrap = document.createElement("div");
-  const select = document.createElement("select");
   const input = document.createElement("input");
+  const button = document.createElement("button");
 
   cell.className = "category-cell";
   wrap.className = "category-editor";
-  select.className = "category-select";
-  select.dataset.field = "categorySelect";
   input.dataset.field = "category";
   input.className = "category-input";
   input.type = "text";
+  input.list = "categoryOptions";
   input.value = record.category || "";
-  input.placeholder = "自定义";
+  input.placeholder = "填写品类";
 
-  select.addEventListener("change", () => {
-    if (select.value) {
-      input.value = select.value;
+  button.className = "category-dropdown-btn";
+  button.type = "button";
+  button.textContent = "⌄";
+  button.title = "选择已有品类";
+  button.addEventListener("click", () => {
+    input.focus();
+    if (typeof input.showPicker === "function") {
+      input.showPicker();
     }
   });
 
-  wrap.append(select, input);
+  input.addEventListener("change", () => {
+    const categories = getCategoryValues(currentRecords);
+    if (categories.includes(input.value.trim()) && input.value.trim() !== (record.category || "")) {
+      saveRecordEdits(record.id, cell.closest("tr"));
+    }
+  });
+
+  wrap.append(input, button);
   cell.append(wrap);
   return cell;
 }
@@ -197,29 +209,8 @@ function renderCategoryOptions(records) {
   );
 }
 
-function syncCategorySelects(records) {
-  const categories = getCategoryValues(records);
-
-  for (const select of tableBody.querySelectorAll(".category-select")) {
-    const row = select.closest("tr");
-    const currentCategory = row.querySelector('[data-field="category"]').value;
-    const placeholder = document.createElement("option");
-
-    placeholder.value = "";
-    placeholder.textContent = categories.length > 0 ? "选择" : "暂无";
-    select.replaceChildren(placeholder);
-
-    for (const category of categories) {
-      const option = document.createElement("option");
-      option.value = category;
-      option.textContent = category;
-      option.selected = category === currentCategory;
-      select.append(option);
-    }
-  }
-}
-
 function renderRecords(records) {
+  currentRecords = records;
   tableBody.replaceChildren();
   renderCategoryOptions(records);
 
@@ -243,8 +234,6 @@ function renderRecords(records) {
 
     tableBody.append(row);
   }
-
-  syncCategorySelects(records);
 }
 
 async function saveRecordEdits(recordId, row) {
