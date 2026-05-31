@@ -1,6 +1,40 @@
 const previewDock = document.querySelector("#previewDock");
 const previewImage = previewDock.querySelector("img");
 
+const PREVIEW_MAX_WIDTH = 520;
+const PREVIEW_MAX_HEIGHT = 462;
+const GAP = 4;
+const EDGE = 16;
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function placePreview(triggerImage) {
+  const strip = triggerImage.closest(".store-images");
+  const firstImage = strip.querySelector("img");
+  const firstRect = firstImage.getBoundingClientRect();
+  const ratio = triggerImage.naturalWidth && triggerImage.naturalHeight ? triggerImage.naturalWidth / triggerImage.naturalHeight : 9 / 16;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  let previewWidth = PREVIEW_MAX_WIDTH;
+  let previewHeight = PREVIEW_MAX_HEIGHT;
+
+  if (ratio >= 1) {
+    previewHeight = Math.round(previewWidth / ratio);
+  } else {
+    previewWidth = Math.round(previewHeight * ratio);
+  }
+
+  const left = clamp(firstRect.left, EDGE, viewportWidth - previewWidth - EDGE);
+  const top = clamp(firstRect.bottom + GAP, EDGE, viewportHeight - previewHeight - EDGE);
+
+  previewDock.style.width = `${previewWidth}px`;
+  previewDock.style.height = `${previewHeight}px`;
+  previewDock.style.left = `${left}px`;
+  previewDock.style.top = `${top}px`;
+}
+
 function hidePreview() {
   previewDock.hidden = true;
   previewImage.removeAttribute("src");
@@ -17,9 +51,8 @@ document.addEventListener("click", (event) => {
   event.stopPropagation();
   previewImage.src = target.src;
   previewImage.alt = target.alt || "商店图大图预览";
+  placePreview(target);
   previewDock.hidden = false;
-  previewDock.scrollIntoView({ block: "nearest", behavior: "smooth" });
 });
 
-window.addEventListener("scroll", hidePreview, { passive: true });
 window.addEventListener("resize", hidePreview);
