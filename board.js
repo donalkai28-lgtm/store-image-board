@@ -108,13 +108,13 @@ function createCategoryCell(record) {
   const wrap = document.createElement("div");
   const input = document.createElement("input");
   const button = document.createElement("button");
+  const menu = document.createElement("div");
 
   cell.className = "category-cell";
   wrap.className = "category-editor";
   input.dataset.field = "category";
   input.className = "category-input";
   input.type = "text";
-  input.list = "categoryOptions";
   input.value = record.category || "";
   input.placeholder = "填写品类";
 
@@ -122,11 +122,12 @@ function createCategoryCell(record) {
   button.type = "button";
   button.textContent = "⌄";
   button.title = "选择已有品类";
-  button.addEventListener("click", () => {
-    input.focus();
-    if (typeof input.showPicker === "function") {
-      input.showPicker();
-    }
+  menu.className = "category-menu";
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    closeCategoryMenus(menu);
+    renderCategoryMenu(menu, input, record.id, cell.closest("tr"));
+    menu.classList.toggle("is-open");
   });
 
   input.addEventListener("change", () => {
@@ -136,7 +137,7 @@ function createCategoryCell(record) {
     }
   });
 
-  wrap.append(input, button);
+  wrap.append(input, button, menu);
   cell.append(wrap);
   return cell;
 }
@@ -178,6 +179,7 @@ function createActionCell(record) {
   const cell = document.createElement("td");
   const saveButton = document.createElement("button");
   const downloadButton = document.createElement("button");
+  const deleteButton = document.createElement("button");
 
   saveButton.className = "save-record";
   saveButton.type = "button";
@@ -189,7 +191,12 @@ function createActionCell(record) {
   downloadButton.textContent = "下载";
   downloadButton.addEventListener("click", () => downloadRecordImages(record));
 
-  cell.append(saveButton, downloadButton);
+  deleteButton.className = "remove-record";
+  deleteButton.type = "button";
+  deleteButton.textContent = "删除";
+  deleteButton.addEventListener("click", () => deleteRecord(record.id));
+
+  cell.append(saveButton, downloadButton, deleteButton);
   return cell;
 }
 
@@ -207,6 +214,39 @@ function renderCategoryOptions(records) {
       return option;
     }),
   );
+}
+
+function closeCategoryMenus(exceptMenu = null) {
+  for (const menu of document.querySelectorAll(".category-menu.is-open")) {
+    if (menu !== exceptMenu) {
+      menu.classList.remove("is-open");
+    }
+  }
+}
+
+function renderCategoryMenu(menu, input, recordId, row) {
+  const categories = getCategoryValues(currentRecords);
+  menu.replaceChildren();
+
+  if (categories.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "category-menu-empty";
+    empty.textContent = "暂无已保存品类";
+    menu.append(empty);
+    return;
+  }
+
+  for (const category of categories) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.textContent = category;
+    item.addEventListener("click", () => {
+      input.value = category;
+      menu.classList.remove("is-open");
+      saveRecordEdits(recordId, row);
+    });
+    menu.append(item);
+  }
 }
 
 function renderRecords(records) {
@@ -309,6 +349,30 @@ async function downloadRecordImages(record) {
   showToast(`已触发下载 ${count} 张图片。`);
 }
 
+async function deleteRecord(recordId) {
+  if (!window.confirm("确定删除这一行素材记录吗？")) {
+    return;
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/asset_records?id=eq.${recordId}`, {
+    method: "DELETE",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      Prefer: "return=minimal",
+    },
+  });
+
+  if (!response.ok) {
+    showToast(`删除失败：${response.status}`, "error");
+    return;
+  }
+
+  const records = await fetchAssetRecords();
+  renderRecords(records);
+  showToast("已删除该行记录。");
+}
+
 async function initBoard() {
   try {
     const records = await fetchAssetRecords();
@@ -319,3 +383,7 @@ async function initBoard() {
 }
 
 initBoard();
+
+document.addEventListener("click", () => {
+  closeCategoryMenus();
+});

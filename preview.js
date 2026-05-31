@@ -5,6 +5,7 @@ const PREVIEW_MAX_WIDTH = 520;
 const PREVIEW_MAX_HEIGHT = 462;
 const GAP = 16;
 const EDGE = 16;
+const tablePanel = document.querySelector(".table-panel");
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -12,7 +13,7 @@ function clamp(value, min, max) {
 
 function placePreview(triggerImage) {
   const stripRect = triggerImage.closest(".store-images").getBoundingClientRect();
-  const rowRect = triggerImage.closest("tr").getBoundingClientRect();
+  const panelRect = tablePanel.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const ratio = triggerImage.naturalWidth && triggerImage.naturalHeight ? triggerImage.naturalWidth / triggerImage.naturalHeight : 9 / 16;
@@ -29,15 +30,14 @@ function placePreview(triggerImage) {
   preview.style.height = `${previewHeight}px`;
 
   let x = clamp(stripRect.left, EDGE, viewportWidth - previewWidth - EDGE);
-  let y = rowRect.bottom + GAP;
+  let y = panelRect.bottom + GAP;
 
   if (y + previewHeight > viewportHeight - EDGE) {
-    y = rowRect.top - previewHeight - GAP;
+    y = panelRect.top - previewHeight - GAP;
   }
 
   if (y < EDGE) {
-    x = stripRect.right + GAP;
-    y = clamp(rowRect.top, EDGE, viewportHeight - previewHeight - EDGE);
+    y = EDGE;
   }
 
   if (x + previewWidth > viewportWidth - EDGE) {
