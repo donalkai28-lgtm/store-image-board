@@ -327,7 +327,7 @@ h1 {
 
 .asset-table th:nth-child(3),
 .asset-table td:nth-child(3) {
-  width: 160px;
+  width: 120px;
 }
 
 .asset-table th:nth-child(4),
