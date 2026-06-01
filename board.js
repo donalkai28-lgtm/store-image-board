@@ -54,7 +54,7 @@ async function fetchAssetRecords(page = 1) {
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
   const query = new URLSearchParams({
-    select: "id,app_id,product_url,captured_date,category,note,created_at,asset_images(image_url,sort_order)",
+    select: "id,app_id,product_url,product_alias,captured_date,category,note,created_at,asset_images(image_url,sort_order)",
     order: "created_at.desc",
   });
 
@@ -132,8 +132,11 @@ function createTextCell(className, text) {
 function createProductCell(record) {
   const cell = document.createElement("td");
   const productName = record.app_id || "未命名产品";
+  const productWrap = document.createElement("div");
+  const alias = document.createElement("div");
 
   cell.className = "product-cell";
+  productWrap.className = "product-main";
 
   if (record.product_url) {
     const link = document.createElement("a");
@@ -141,11 +144,19 @@ function createProductCell(record) {
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.textContent = productName;
-    cell.append(link);
+    productWrap.append(link);
+  } else {
+    productWrap.textContent = productName;
+  }
+
+  if (record.product_alias) {
+    alias.className = "product-alias";
+    alias.textContent = record.product_alias;
+    cell.append(productWrap, alias);
     return cell;
   }
 
-  cell.textContent = productName;
+  cell.append(productWrap);
   return cell;
 }
 

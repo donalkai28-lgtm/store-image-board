@@ -367,6 +367,10 @@ h1 {
   word-break: break-word;
 }
 
+.product-main {
+  line-height: 1.25;
+}
+
 .product-cell a {
   color: #0f172a;
   text-decoration: none;
@@ -375,6 +379,14 @@ h1 {
 .product-cell a:hover {
   color: var(--accent-dark);
   text-decoration: underline;
+}
+
+.product-alias {
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 .captured-cell,
