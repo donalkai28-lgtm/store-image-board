@@ -12,6 +12,7 @@
         <table class="asset-table">
           <thead>
             <tr>
+              <th>序号</th>
               <th>产品名</th>
               <th>采集时间</th>
               <th>品类</th>
@@ -22,10 +23,15 @@
           </thead>
           <tbody id="assetTableBody">
             <tr>
-              <td class="empty-cell" colspan="6">正在读取素材数据...</td>
+              <td class="empty-cell" colspan="7">正在读取素材数据...</td>
             </tr>
           </tbody>
         </table>
+      </section>
+      <section class="pagination" aria-label="分页">
+        <button id="prevPageBtn" type="button">上一页</button>
+        <span id="pageInfo">第 1 页</span>
+        <button id="nextPageBtn" type="button">下一页</button>
       </section>
       <section id="previewDock" class="preview-dock" hidden>
         <img src="" alt="">

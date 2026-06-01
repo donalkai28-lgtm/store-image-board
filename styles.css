@@ -317,37 +317,48 @@ h1 {
 
 .asset-table th:nth-child(1),
 .asset-table td:nth-child(1) {
-  width: 200px;
+  width: 40px;
 }
 
 .asset-table th:nth-child(2),
 .asset-table td:nth-child(2) {
-  width: 160px;
+  width: 200px;
 }
 
 .asset-table th:nth-child(3),
 .asset-table td:nth-child(3) {
-  width: 140px;
+  width: 160px;
 }
 
 .asset-table th:nth-child(4),
 .asset-table td:nth-child(4) {
-  width: auto;
-}
-
-.asset-table td:nth-child(4) {
-  padding-top: 5px;
-  padding-bottom: 5px;
+  width: 140px;
 }
 
 .asset-table th:nth-child(5),
 .asset-table td:nth-child(5) {
-  width: 240px;
+  width: auto;
+}
+
+.asset-table td:nth-child(5) {
+  padding-top: 5px;
+  padding-bottom: 5px;
 }
 
 .asset-table th:nth-child(6),
 .asset-table td:nth-child(6) {
+  width: 240px;
+}
+
+.asset-table th:nth-child(7),
+.asset-table td:nth-child(7) {
   width: 140px;
+}
+
+.serial-cell {
+  color: #64748b;
+  font-weight: 900;
+  text-align: center;
 }
 
 .product-cell {
@@ -598,6 +609,36 @@ h1 {
   border-radius: 12px;
   object-fit: contain;
   background: #f8fafc;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.pagination button {
+  border: 1px solid #dbe5f0;
+  border-radius: 12px;
+  padding: 8px 14px;
+  color: #1d4ed8;
+  background: rgb(255 255 255 / 86%);
+  box-shadow: 0 8px 18px rgb(15 23 42 / 8%);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pagination span {
+  color: #40516b;
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .toast {

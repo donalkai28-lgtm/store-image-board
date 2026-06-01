@@ -4,7 +4,14 @@ const SUPABASE_KEY = "sb_publishable_eNa9BtBpXWDs0vM_IXNg-g_72ls9pYe";
 const tableBody = document.querySelector("#assetTableBody");
 const toast = document.querySelector("#toast");
 const categoryOptions = document.querySelector("#categoryOptions");
+const prevPageBtn = document.querySelector("#prevPageBtn");
+const nextPageBtn = document.querySelector("#nextPageBtn");
+const pageInfo = document.querySelector("#pageInfo");
+const PAGE_SIZE = 15;
 let currentRecords = [];
+let currentPage = 1;
+let totalRecords = 0;
+let categoryValues = [];
 
 function showToast(message, type = "success") {
   toast.textContent = message;
@@ -43,10 +50,41 @@ function wait(ms) {
   });
 }
 
-async function fetchAssetRecords() {
+async function fetchAssetRecords(page = 1) {
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
   const query = new URLSearchParams({
     select: "id,app_id,product_url,captured_date,category,note,created_at,asset_images(image_url,sort_order)",
     order: "created_at.desc",
+  });
+
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/asset_records?${query}`, {
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      Prefer: "count=exact",
+      Range: `${from}-${to}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Supabase 请求失败：${response.status}`);
+  }
+
+  const records = await response.json();
+  const contentRange = response.headers.get("content-range") || "";
+  const count = Number(contentRange.split("/")[1]);
+
+  return {
+    records,
+    total: Number.isFinite(count) ? count : from + records.length,
+  };
+}
+
+async function fetchCategoryValues() {
+  const query = new URLSearchParams({
+    select: "category",
+    category: "not.is.null",
   });
 
   const response = await fetch(`${SUPABASE_URL}/rest/v1/asset_records?${query}`, {
@@ -57,10 +95,11 @@ async function fetchAssetRecords() {
   });
 
   if (!response.ok) {
-    throw new Error(`Supabase 请求失败：${response.status}`);
+    return [];
   }
 
-  return response.json();
+  const rows = await response.json();
+  return [...new Set(rows.map((row) => row.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-CN"));
 }
 
 function renderEmpty(message) {
@@ -69,11 +108,18 @@ function renderEmpty(message) {
   const row = document.createElement("tr");
   const cell = document.createElement("td");
   cell.className = "empty-cell";
-  cell.colSpan = 6;
+  cell.colSpan = 7;
   cell.textContent = message;
 
   row.append(cell);
   tableBody.append(row);
+}
+
+function createSerialCell(index) {
+  const cell = document.createElement("td");
+  cell.className = "serial-cell";
+  cell.textContent = String(totalRecords - ((currentPage - 1) * PAGE_SIZE + index));
+  return cell;
 }
 
 function createTextCell(className, text) {
@@ -201,6 +247,10 @@ function createActionCell(record) {
 }
 
 function getCategoryValues(records) {
+  if (categoryValues.length > 0) {
+    return categoryValues;
+  }
+
   return [...new Set(records.map((record) => record.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-CN"));
 }
 
@@ -259,11 +309,12 @@ function renderRecords(records) {
     return;
   }
 
-  for (const record of records) {
+  for (const [index, record] of records.entries()) {
     const row = document.createElement("tr");
     row.dataset.recordId = record.id;
 
     row.append(
+      createSerialCell(index),
       createProductCell(record),
       createTextCell("captured-cell", formatDate(record.created_at || record.captured_date)),
       createCategoryCell(record),
@@ -274,6 +325,30 @@ function renderRecords(records) {
 
     tableBody.append(row);
   }
+}
+
+function renderPagination() {
+  const totalPages = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE));
+
+  prevPageBtn.disabled = currentPage <= 1;
+  nextPageBtn.disabled = currentPage >= totalPages;
+  pageInfo.textContent = `第 ${currentPage} / ${totalPages} 页，共 ${totalRecords} 条`;
+}
+
+async function loadPage(page) {
+  currentPage = page;
+  renderEmpty("正在读取素材数据...");
+
+  const { records, total } = await fetchAssetRecords(currentPage);
+  totalRecords = total;
+
+  if (records.length === 0 && currentPage > 1) {
+    await loadPage(currentPage - 1);
+    return;
+  }
+
+  renderRecords(records);
+  renderPagination();
 }
 
 async function saveRecordEdits(recordId, row) {
@@ -305,8 +380,8 @@ async function saveRecordEdits(recordId, row) {
     categoryOptions.append(option);
   }
 
-  const records = await fetchAssetRecords();
-  renderRecords(records);
+  categoryValues = await fetchCategoryValues();
+  await loadPage(currentPage);
   showToast("已保存品类和备注。");
 }
 
@@ -368,21 +443,34 @@ async function deleteRecord(recordId) {
     return;
   }
 
-  const records = await fetchAssetRecords();
-  renderRecords(records);
+  categoryValues = await fetchCategoryValues();
+  await loadPage(currentPage);
   showToast("已删除该行记录。");
 }
 
 async function initBoard() {
   try {
-    const records = await fetchAssetRecords();
-    renderRecords(records);
+    categoryValues = await fetchCategoryValues();
+    await loadPage(1);
   } catch (error) {
     renderEmpty(error.message);
   }
 }
 
 initBoard();
+
+prevPageBtn.addEventListener("click", () => {
+  if (currentPage > 1) {
+    loadPage(currentPage - 1);
+  }
+});
+
+nextPageBtn.addEventListener("click", () => {
+  const totalPages = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE));
+  if (currentPage < totalPages) {
+    loadPage(currentPage + 1);
+  }
+});
 
 document.addEventListener("click", () => {
   closeCategoryMenus();
