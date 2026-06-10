@@ -36,24 +36,41 @@ function placePreview(triggerImage) {
   previewDock.style.top = `${top}px`;
 }
 
+function showPreview(target) {
+  previewImage.src = target.src;
+  previewImage.alt = target.alt || "商店图大图预览";
+  placePreview(target);
+  previewDock.hidden = false;
+}
+
 function hidePreview() {
   previewDock.hidden = true;
   previewImage.removeAttribute("src");
 }
 
-document.addEventListener("click", (event) => {
+document.addEventListener("mouseover", (event) => {
   const target = event.target;
 
   if (!(target instanceof HTMLImageElement) || !target.closest(".store-images")) {
-    hidePreview();
     return;
   }
 
-  event.stopPropagation();
-  previewImage.src = target.src;
-  previewImage.alt = target.alt || "商店图大图预览";
-  placePreview(target);
-  previewDock.hidden = false;
+  showPreview(target);
+});
+
+document.addEventListener("mouseout", (event) => {
+  const target = event.target;
+
+  if (!(target instanceof HTMLImageElement) || !target.closest(".store-images")) {
+    return;
+  }
+
+  const nextTarget = event.relatedTarget;
+  if (nextTarget instanceof Element && nextTarget.closest(".store-images")) {
+    return;
+  }
+
+  hidePreview();
 });
 
 window.addEventListener("resize", hidePreview);
