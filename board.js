@@ -320,35 +320,18 @@ function hideIconPreview() {
   }
 }
 
-function createIconActions(record) {
-  const actions = document.createElement("div");
-  const downloadButton = document.createElement("button");
-  const deleteButton = document.createElement("button");
-
-  actions.className = "icon-actions";
-  downloadButton.type = "button";
-  downloadButton.className = "icon-download";
-  downloadButton.textContent = "下载";
-  downloadButton.addEventListener("click", () => downloadIcon(record));
-
-  deleteButton.type = "button";
-  deleteButton.className = "icon-delete";
-  deleteButton.textContent = "删除";
-  deleteButton.addEventListener("click", () => deleteIcon(record.id));
-
-  actions.append(downloadButton, deleteButton);
-  return actions;
-}
-
 function createIconCard(record) {
   const card = document.createElement("article");
+  const imageWrap = document.createElement("div");
   const image = document.createElement("img");
+  const deleteBadge = document.createElement("button");
   const name = document.createElement("a");
   const developer = document.createElement("div");
   const meta = document.createElement("div");
   const label = document.createElement("span");
 
   card.className = "icon-card";
+  imageWrap.className = "icon-image-wrap";
   image.className = "icon-image";
   image.src = record.icon_url;
   image.alt = record.app_id || "产品 icon";
@@ -356,6 +339,15 @@ function createIconCard(record) {
   image.addEventListener("mouseenter", () => showIconPreview(record, image));
   image.addEventListener("mousemove", () => showIconPreview(record, image));
   image.addEventListener("mouseleave", hideIconPreview);
+  deleteBadge.className = "icon-delete-badge";
+  deleteBadge.type = "button";
+  deleteBadge.textContent = "删";
+  deleteBadge.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    deleteIcon(record.id);
+  });
+  imageWrap.append(image, deleteBadge);
 
   name.className = "icon-name";
   name.textContent = record.app_id || "未命名产品";
@@ -369,7 +361,7 @@ function createIconCard(record) {
   meta.className = "icon-meta";
   label.textContent = "品类";
   meta.append(label, createIconCategorySelect(record));
-  card.append(image, name, developer, meta, createIconActions(record));
+  card.append(imageWrap, name, developer, meta);
 
   return card;
 }
@@ -833,32 +825,6 @@ async function saveIconCategory(recordId, category) {
   categoryValues = await fetchCategoryValues();
   renderCategoryFilterMenu();
   showToast("已保存 icon 品类。");
-}
-
-async function downloadIcon(record) {
-  if (!record.icon_url) {
-    showToast("这个 icon 没有可下载图片。", "error");
-    return;
-  }
-
-  try {
-    const response = await fetch(record.icon_url);
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = objectUrl;
-    link.download = `${sanitizeFilename(record.app_id || "icon")}-icon.png`;
-    link.style.display = "none";
-    document.body.append(link);
-    link.click();
-    link.remove();
-
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-    showToast("已触发 icon 下载。");
-  } catch {
-    showToast("icon 下载失败：图片源暂时无法读取。", "error");
-  }
 }
 
 async function deleteIcon(recordId) {
