@@ -215,11 +215,30 @@ function getIconPreviewDock() {
   return dock;
 }
 
-function showIconPreview(record) {
+function placeIconPreview(dock, target) {
+  const rect = target.getBoundingClientRect();
+  const previewSize = 250;
+  const gap = 12;
+  const pagePadding = 16;
+  const rightX = rect.right + gap;
+  const leftX = rect.left - previewSize - gap;
+  const hasRightSpace = rightX + previewSize <= window.innerWidth - pagePadding;
+  const x = hasRightSpace ? rightX : Math.max(pagePadding, leftX);
+  const y = Math.min(
+    Math.max(pagePadding, rect.top + rect.height / 2 - previewSize / 2),
+    window.innerHeight - previewSize - pagePadding,
+  );
+
+  dock.style.left = `${x}px`;
+  dock.style.top = `${y}px`;
+}
+
+function showIconPreview(record, target) {
   const dock = getIconPreviewDock();
   const image = dock.querySelector("img");
   image.src = record.icon_url;
   image.alt = record.app_id || "icon 预览";
+  placeIconPreview(dock, target);
   dock.hidden = false;
 }
 
@@ -263,7 +282,8 @@ function createIconCard(record) {
   image.src = record.icon_url;
   image.alt = record.app_id || "产品 icon";
   image.loading = "lazy";
-  image.addEventListener("mouseenter", () => showIconPreview(record));
+  image.addEventListener("mouseenter", () => showIconPreview(record, image));
+  image.addEventListener("mousemove", () => showIconPreview(record, image));
   image.addEventListener("mouseleave", hideIconPreview);
 
   name.className = "icon-name";

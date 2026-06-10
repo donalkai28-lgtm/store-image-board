@@ -483,8 +483,6 @@ h1 {
 
 .icon-preview-dock {
   position: fixed;
-  top: 120px;
-  right: 42px;
   z-index: 40;
   display: grid;
   place-items: center;
