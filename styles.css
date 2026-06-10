@@ -371,6 +371,152 @@ h1 {
   border-radius: 24px;
 }
 
+.icon-panel {
+  border: 1px solid rgb(216 226 241 / 88%);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 84%);
+  box-shadow:
+    0 22px 55px rgb(15 23 42 / 6.3%),
+    inset 0 1px 0 rgb(255 255 255 / 72%);
+  padding: 28px;
+}
+
+.icon-panel[hidden] {
+  display: none;
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 140px);
+  justify-content: center;
+  gap: 24px;
+}
+
+.icon-card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.icon-image {
+  width: 100px;
+  height: 100px;
+  border-radius: 20px;
+  object-fit: cover;
+  background: #e2e8f0;
+  cursor: zoom-in;
+}
+
+.icon-name {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+}
+
+.icon-name:hover {
+  color: var(--accent-dark);
+  text-decoration: underline;
+}
+
+.icon-developer {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.icon-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.icon-category-select {
+  width: 82px;
+  height: 26px;
+  border: 1px solid #94a3b8;
+  border-radius: 6px;
+  color: #334155;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.icon-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.icon-actions button {
+  min-width: 48px;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 9px;
+  color: #fff;
+  background: var(--accent);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.icon-actions button:hover {
+  background: var(--accent-dark);
+}
+
+.icon-actions .icon-delete {
+  background: #ef4444;
+}
+
+.icon-actions .icon-delete:hover {
+  background: #dc2626;
+}
+
+.icon-preview-dock {
+  position: fixed;
+  top: 120px;
+  right: 42px;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 250px;
+  height: 250px;
+  border: 1px solid rgb(203 213 225 / 90%);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 20px 50px rgb(15 23 42 / 12%);
+  pointer-events: none;
+}
+
+.icon-preview-dock[hidden] {
+  display: none;
+}
+
+.icon-preview-dock img {
+  width: 250px;
+  height: 250px;
+  border-radius: 22px;
+  object-fit: cover;
+}
+
+.icon-empty {
+  grid-column: 1 / -1;
+  padding: 80px 0;
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+}
+
 .asset-table {
   width: 100%;
   border-collapse: collapse;

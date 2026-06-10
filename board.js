@@ -2,6 +2,9 @@ const SUPABASE_URL = "https://ulpybjsdogyfdawfikmu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_eNa9BtBpXWDs0vM_IXNg-g_72ls9pYe";
 
 const tableBody = document.querySelector("#assetTableBody");
+const tablePanel = document.querySelector(".table-panel");
+const iconPanel = document.querySelector("#iconPanel");
+const iconGrid = document.querySelector("#iconGrid");
 const toast = document.querySelector("#toast");
 const categoryOptions = document.querySelector("#categoryOptions");
 const prevPageBtn = document.querySelector("#prevPageBtn");
@@ -91,25 +94,207 @@ async function fetchAssetRecords(page = 1) {
   };
 }
 
-async function fetchCategoryValues() {
+async function fetchIconRecords(page = 1) {
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
   const query = new URLSearchParams({
-    select: "category",
-    category: "not.is.null",
+    select: "id,app_id,product_url,product_alias,category,icon_url,created_at",
+    order: "created_at.desc",
   });
 
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/asset_records?${query}`, {
+  if (selectedCategories.size > 0) {
+    query.set("category", `in.(${Array.from(selectedCategories).map((category) => `"${category.replaceAll('"', '\\"')}"`).join(",")})`);
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/icon_records?${query}`, {
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: `Bearer ${SUPABASE_KEY}`,
+      Prefer: "count=exact",
+      Range: `${from}-${to}`,
     },
   });
 
   if (!response.ok) {
-    return [];
+    throw new Error(`Supabase 请求失败：${response.status}`);
   }
 
-  const rows = await response.json();
-  return [...new Set(rows.map((row) => row.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-CN"));
+  const records = await response.json();
+  const contentRange = response.headers.get("content-range") || "";
+  const count = Number(contentRange.split("/")[1]);
+
+  return {
+    records,
+    total: Number.isFinite(count) ? count : from + records.length,
+  };
+}
+
+async function fetchCategoryValues() {
+  const tables = ["asset_records", "icon_records"];
+  const results = await Promise.all(
+    tables.map(async (table) => {
+      const query = new URLSearchParams({
+        select: "category",
+        category: "not.is.null",
+      });
+
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+        },
+      });
+
+      if (!response.ok) {
+        return [];
+      }
+
+      return response.json();
+    }),
+  );
+
+  return [
+    ...new Set(
+      results
+        .flat()
+        .map((row) => row.category)
+        .filter(Boolean),
+    ),
+  ].sort((a, b) => a.localeCompare(b, "zh-CN"));
+}
+
+function renderIconEmpty(message) {
+  iconGrid.replaceChildren();
+
+  const empty = document.createElement("div");
+  empty.className = "icon-empty";
+  empty.textContent = message;
+  iconGrid.append(empty);
+}
+
+function createIconCategorySelect(record) {
+  const select = document.createElement("select");
+  const emptyOption = document.createElement("option");
+
+  select.className = "icon-category-select";
+  emptyOption.value = "";
+  emptyOption.textContent = "选择品类";
+  select.append(emptyOption);
+
+  for (const category of categoryValues) {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    option.selected = category === record.category;
+    select.append(option);
+  }
+
+  select.addEventListener("change", () => {
+    saveIconCategory(record.id, select.value);
+  });
+
+  return select;
+}
+
+function getIconPreviewDock() {
+  let dock = document.querySelector("#iconPreviewDock");
+  if (dock) {
+    return dock;
+  }
+
+  dock = document.createElement("section");
+  dock.id = "iconPreviewDock";
+  dock.className = "icon-preview-dock";
+  dock.hidden = true;
+
+  const image = document.createElement("img");
+  image.alt = "";
+  dock.append(image);
+  document.body.append(dock);
+
+  return dock;
+}
+
+function showIconPreview(record) {
+  const dock = getIconPreviewDock();
+  const image = dock.querySelector("img");
+  image.src = record.icon_url;
+  image.alt = record.app_id || "icon 预览";
+  dock.hidden = false;
+}
+
+function hideIconPreview() {
+  const dock = document.querySelector("#iconPreviewDock");
+  if (dock) {
+    dock.hidden = true;
+  }
+}
+
+function createIconActions(record) {
+  const actions = document.createElement("div");
+  const downloadButton = document.createElement("button");
+  const deleteButton = document.createElement("button");
+
+  actions.className = "icon-actions";
+  downloadButton.type = "button";
+  downloadButton.className = "icon-download";
+  downloadButton.textContent = "下载";
+  downloadButton.addEventListener("click", () => downloadIcon(record));
+
+  deleteButton.type = "button";
+  deleteButton.className = "icon-delete";
+  deleteButton.textContent = "删除";
+  deleteButton.addEventListener("click", () => deleteIcon(record.id));
+
+  actions.append(downloadButton, deleteButton);
+  return actions;
+}
+
+function createIconCard(record) {
+  const card = document.createElement("article");
+  const image = document.createElement("img");
+  const name = document.createElement("a");
+  const developer = document.createElement("div");
+  const meta = document.createElement("div");
+  const label = document.createElement("span");
+
+  card.className = "icon-card";
+  image.className = "icon-image";
+  image.src = record.icon_url;
+  image.alt = record.app_id || "产品 icon";
+  image.loading = "lazy";
+  image.addEventListener("mouseenter", () => showIconPreview(record));
+  image.addEventListener("mouseleave", hideIconPreview);
+
+  name.className = "icon-name";
+  name.textContent = record.app_id || "未命名产品";
+  name.href = record.product_url || "#";
+  name.target = "_blank";
+  name.rel = "noopener noreferrer";
+
+  developer.className = "icon-developer";
+  developer.textContent = record.product_alias || "未知开发者";
+
+  meta.className = "icon-meta";
+  label.textContent = "品类";
+  meta.append(label, createIconCategorySelect(record));
+  card.append(image, name, developer, meta, createIconActions(record));
+
+  return card;
+}
+
+function renderIconRecords(records) {
+  currentRecords = records;
+  iconGrid.replaceChildren();
+
+  if (records.length === 0) {
+    renderIconEmpty("暂无 icon 数据。");
+    return;
+  }
+
+  for (const record of records) {
+    iconGrid.append(createIconCard(record));
+  }
 }
 
 function renderEmpty(message) {
@@ -347,11 +532,12 @@ function setContentType(type) {
   currentContentType = type;
   storeImagesFilter.classList.toggle("is-active", type === "store-images");
   iconFilter.classList.toggle("is-active", type === "icon");
+  tablePanel.hidden = type !== "store-images";
+  iconPanel.hidden = type !== "icon";
+  hideIconPreview();
 
   if (type === "icon") {
-    renderEmpty("icon 页面暂未接入数据。");
-    totalRecords = 0;
-    renderPagination();
+    loadPage(1);
     return;
   }
 
@@ -428,23 +614,118 @@ function renderPagination() {
 }
 
 async function loadPage(page) {
-  if (currentContentType !== "store-images") {
-    return;
-  }
-
   currentPage = page;
-  renderEmpty("正在读取素材数据...");
+  try {
+    if (currentContentType === "icon") {
+      renderIconEmpty("正在读取 icon 数据...");
+      const { records, total } = await fetchIconRecords(currentPage);
+      totalRecords = total;
 
-  const { records, total } = await fetchAssetRecords(currentPage);
-  totalRecords = total;
+      if (records.length === 0 && currentPage > 1) {
+        await loadPage(currentPage - 1);
+        return;
+      }
 
-  if (records.length === 0 && currentPage > 1) {
-    await loadPage(currentPage - 1);
+      renderIconRecords(records);
+      renderPagination();
+      return;
+    }
+
+    renderEmpty("正在读取素材数据...");
+    const { records, total } = await fetchAssetRecords(currentPage);
+    totalRecords = total;
+
+    if (records.length === 0 && currentPage > 1) {
+      await loadPage(currentPage - 1);
+      return;
+    }
+
+    renderRecords(records);
+    renderPagination();
+  } catch (error) {
+    totalRecords = 0;
+    renderPagination();
+    if (currentContentType === "icon") {
+      renderIconEmpty(error.message);
+      return;
+    }
+    renderEmpty(error.message);
+  }
+}
+
+async function saveIconCategory(recordId, category) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/icon_records?id=eq.${recordId}`, {
+    method: "PATCH",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({
+      category: category || null,
+    }),
+  });
+
+  if (!response.ok) {
+    showToast(`保存失败：${response.status}`, "error");
     return;
   }
 
-  renderRecords(records);
-  renderPagination();
+  categoryValues = await fetchCategoryValues();
+  renderCategoryFilterMenu();
+  showToast("已保存 icon 品类。");
+}
+
+async function downloadIcon(record) {
+  if (!record.icon_url) {
+    showToast("这个 icon 没有可下载图片。", "error");
+    return;
+  }
+
+  try {
+    const response = await fetch(record.icon_url);
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = objectUrl;
+    link.download = `${sanitizeFilename(record.app_id || "icon")}-icon.png`;
+    link.style.display = "none";
+    document.body.append(link);
+    link.click();
+    link.remove();
+
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    showToast("已触发 icon 下载。");
+  } catch {
+    showToast("icon 下载失败：图片源暂时无法读取。", "error");
+  }
+}
+
+async function deleteIcon(recordId) {
+  if (!window.confirm("确定删除这个 icon 记录吗？")) {
+    return;
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/icon_records?id=eq.${recordId}`, {
+    method: "DELETE",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      Prefer: "return=minimal",
+    },
+  });
+
+  if (!response.ok) {
+    showToast(`删除失败：${response.status}`, "error");
+    return;
+  }
+
+  hideIconPreview();
+  categoryValues = await fetchCategoryValues();
+  await loadPage(currentPage);
+  showToast("已删除 icon 记录。");
 }
 
 async function saveRecordEdits(recordId, row) {
