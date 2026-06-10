@@ -66,7 +66,7 @@ document.addEventListener("mouseout", (event) => {
   }
 
   const nextTarget = event.relatedTarget;
-  if (nextTarget instanceof Element && nextTarget.closest(".store-images")) {
+  if (nextTarget instanceof HTMLImageElement && nextTarget.closest(".store-images")) {
     return;
   }
 
