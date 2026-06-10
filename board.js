@@ -464,11 +464,24 @@ function createImageCell(record) {
   strip.className = "store-images";
 
   for (const [index, image] of images.entries()) {
+    const item = document.createElement("div");
     const img = document.createElement("img");
-    img.src = image.image_url;
+    const markImageOrientation = () => {
+      const isLandscape = img.naturalWidth > img.naturalHeight;
+      img.classList.toggle("is-landscape", isLandscape);
+      item.classList.toggle("is-landscape", isLandscape);
+    };
+
+    item.className = "store-image-item";
     img.alt = `${record.app_id || "产品"} 商店图 ${index + 1}`;
     img.loading = "lazy";
-    strip.append(img);
+    img.addEventListener("load", markImageOrientation);
+    img.src = image.image_url;
+    if (img.complete) {
+      markImageOrientation();
+    }
+    item.append(img);
+    strip.append(item);
   }
 
   cell.append(strip);
