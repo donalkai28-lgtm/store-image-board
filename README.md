@@ -16,6 +16,7 @@ npm run dev
 - 表头包含产品名、采集时间、品类、商店图、备注和操作。
 - 从 Supabase 读取 `asset_records` 和 `asset_images`。
 - icon 页面从 Supabase 读取 `icon_records`，建表 SQL 见 `supabase-icon.sql`。
+- 单图页面从 Supabase 读取 `single_images`，建表 SQL 见 `supabase-single-image.sql`。
 - 产品名可绑定来源链接并跳转。
 - 品类和备注支持在前端编辑，并保存回 Supabase。
 - 点击缩略图可在空白处查看大图。

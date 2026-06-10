@@ -5,6 +5,8 @@ const tableBody = document.querySelector("#assetTableBody");
 const tablePanel = document.querySelector(".table-panel");
 const iconPanel = document.querySelector("#iconPanel");
 const iconGrid = document.querySelector("#iconGrid");
+const singleImagePanel = document.querySelector("#singleImagePanel");
+const singleImageGrid = document.querySelector("#singleImageGrid");
 const toast = document.querySelector("#toast");
 const categoryOptions = document.querySelector("#categoryOptions");
 const prevPageBtn = document.querySelector("#prevPageBtn");
@@ -12,9 +14,11 @@ const nextPageBtn = document.querySelector("#nextPageBtn");
 const pageInfo = document.querySelector("#pageInfo");
 const storeImagesFilter = document.querySelector("#storeImagesFilter");
 const iconFilter = document.querySelector("#iconFilter");
+const singleImageFilter = document.querySelector("#singleImageFilter");
 const categoryFilterBtn = document.querySelector("#categoryFilterBtn");
 const categoryFilterMenu = document.querySelector("#categoryFilterMenu");
 const STORE_PAGE_SIZE = 20;
+const SINGLE_IMAGE_PAGE_SIZE = 60;
 const ICON_LAYOUT = {
   columnWidth: 140,
   rowHeight: 220,
@@ -77,7 +81,15 @@ function getIconPageSize() {
 }
 
 function getCurrentPageSize() {
-  return currentContentType === "icon" ? getIconPageSize() : STORE_PAGE_SIZE;
+  if (currentContentType === "icon") {
+    return getIconPageSize();
+  }
+
+  if (currentContentType === "single-image") {
+    return SINGLE_IMAGE_PAGE_SIZE;
+  }
+
+  return STORE_PAGE_SIZE;
 }
 
 function wait(ms) {
@@ -135,6 +147,37 @@ async function fetchIconRecords(page = 1) {
   }
 
   const response = await fetch(`${SUPABASE_URL}/rest/v1/icon_records?${query}`, {
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      Prefer: "count=exact",
+      Range: `${from}-${to}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Supabase 请求失败：${response.status}`);
+  }
+
+  const records = await response.json();
+  const contentRange = response.headers.get("content-range") || "";
+  const count = Number(contentRange.split("/")[1]);
+
+  return {
+    records,
+    total: Number.isFinite(count) ? count : from + records.length,
+  };
+}
+
+async function fetchSingleImageRecords(page = 1) {
+  const from = (page - 1) * SINGLE_IMAGE_PAGE_SIZE;
+  const to = from + SINGLE_IMAGE_PAGE_SIZE - 1;
+  const query = new URLSearchParams({
+    select: "id,image_url,created_at",
+    order: "created_at.desc",
+  });
+
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/single_images?${query}`, {
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: `Bearer ${SUPABASE_KEY}`,
@@ -342,6 +385,38 @@ function renderIconRecords(records) {
 
   for (const record of records) {
     iconGrid.append(createIconCard(record));
+  }
+}
+
+function renderSingleImageEmpty(message) {
+  singleImageGrid.replaceChildren();
+
+  const empty = document.createElement("div");
+  empty.className = "single-image-empty";
+  empty.textContent = message;
+  singleImageGrid.append(empty);
+}
+
+function renderSingleImageRecords(records) {
+  currentRecords = records;
+  singleImageGrid.replaceChildren();
+
+  if (records.length === 0) {
+    renderSingleImageEmpty("暂无单图数据。");
+    return;
+  }
+
+  for (const record of records) {
+    const card = document.createElement("article");
+    const image = document.createElement("img");
+
+    card.className = "single-image-card";
+    image.src = record.image_url;
+    image.alt = "单图素材";
+    image.loading = "lazy";
+
+    card.append(image);
+    singleImageGrid.append(card);
   }
 }
 
@@ -593,11 +668,14 @@ function setContentType(type) {
   currentContentType = type;
   storeImagesFilter.classList.toggle("is-active", type === "store-images");
   iconFilter.classList.toggle("is-active", type === "icon");
+  singleImageFilter.classList.toggle("is-active", type === "single-image");
   tablePanel.hidden = type !== "store-images";
   iconPanel.hidden = type !== "icon";
+  singleImagePanel.hidden = type !== "single-image";
+  document.querySelector(".category-filter").hidden = type === "single-image";
   hideIconPreview();
 
-  if (type === "icon") {
+  if (type === "icon" || type === "single-image") {
     loadPage(1);
     return;
   }
@@ -692,6 +770,21 @@ async function loadPage(page) {
       return;
     }
 
+    if (currentContentType === "single-image") {
+      renderSingleImageEmpty("正在读取单图数据...");
+      const { records, total } = await fetchSingleImageRecords(currentPage);
+      totalRecords = total;
+
+      if (records.length === 0 && currentPage > 1) {
+        await loadPage(currentPage - 1);
+        return;
+      }
+
+      renderSingleImageRecords(records);
+      renderPagination();
+      return;
+    }
+
     renderEmpty("正在读取素材数据...");
     const { records, total } = await fetchAssetRecords(currentPage);
     totalRecords = total;
@@ -708,6 +801,10 @@ async function loadPage(page) {
     renderPagination();
     if (currentContentType === "icon") {
       renderIconEmpty(error.message);
+      return;
+    }
+    if (currentContentType === "single-image") {
+      renderSingleImageEmpty(error.message);
       return;
     }
     renderEmpty(error.message);
@@ -914,6 +1011,7 @@ nextPageBtn.addEventListener("click", () => {
 
 storeImagesFilter.addEventListener("click", () => setContentType("store-images"));
 iconFilter.addEventListener("click", () => setContentType("icon"));
+singleImageFilter.addEventListener("click", () => setContentType("single-image"));
 
 categoryFilterBtn.addEventListener("click", (event) => {
   event.stopPropagation();
