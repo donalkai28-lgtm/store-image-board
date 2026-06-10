@@ -14,13 +14,21 @@ const storeImagesFilter = document.querySelector("#storeImagesFilter");
 const iconFilter = document.querySelector("#iconFilter");
 const categoryFilterBtn = document.querySelector("#categoryFilterBtn");
 const categoryFilterMenu = document.querySelector("#categoryFilterMenu");
-const PAGE_SIZE = 20;
+const STORE_PAGE_SIZE = 20;
+const ICON_LAYOUT = {
+  columnWidth: 140,
+  rowHeight: 220,
+  gap: 24,
+  panelPadding: 28,
+  bottomPadding: 48,
+};
 let currentRecords = [];
 let currentPage = 1;
 let totalRecords = 0;
 let categoryValues = [];
 let selectedCategories = new Set();
 let currentContentType = "store-images";
+let resizeTimer = 0;
 
 function showToast(message, type = "success") {
   toast.textContent = message;
@@ -53,6 +61,25 @@ function sanitizeFilename(value) {
   return String(value).replace(/[\\/:*?"<>|]/g, "_").slice(0, 80) || "image";
 }
 
+function getIconPageSize() {
+  const panelRect = iconPanel.getBoundingClientRect();
+  const paginationHeight = document.querySelector(".pagination")?.getBoundingClientRect().height || 0;
+  const panelWidth = panelRect.width || iconPanel.parentElement?.getBoundingClientRect().width || window.innerWidth;
+  const innerWidth = Math.max(ICON_LAYOUT.columnWidth, panelWidth - ICON_LAYOUT.panelPadding * 2);
+  const availableHeight = Math.max(
+    ICON_LAYOUT.rowHeight,
+    window.innerHeight - panelRect.top - paginationHeight - ICON_LAYOUT.bottomPadding - ICON_LAYOUT.panelPadding * 2,
+  );
+  const columns = Math.max(1, Math.floor((innerWidth + ICON_LAYOUT.gap) / (ICON_LAYOUT.columnWidth + ICON_LAYOUT.gap)));
+  const rows = Math.max(1, Math.floor((availableHeight + ICON_LAYOUT.gap) / (ICON_LAYOUT.rowHeight + ICON_LAYOUT.gap)));
+
+  return columns * rows;
+}
+
+function getCurrentPageSize() {
+  return currentContentType === "icon" ? getIconPageSize() : STORE_PAGE_SIZE;
+}
+
 function wait(ms) {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
@@ -60,8 +87,8 @@ function wait(ms) {
 }
 
 async function fetchAssetRecords(page = 1) {
-  const from = (page - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
+  const from = (page - 1) * STORE_PAGE_SIZE;
+  const to = from + STORE_PAGE_SIZE - 1;
   const query = new URLSearchParams({
     select: "id,app_id,product_url,product_alias,captured_date,category,note,created_at,asset_images(image_url,sort_order)",
     order: "created_at.desc",
@@ -95,8 +122,9 @@ async function fetchAssetRecords(page = 1) {
 }
 
 async function fetchIconRecords(page = 1) {
-  const from = (page - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
+  const pageSize = getIconPageSize();
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
   const query = new URLSearchParams({
     select: "id,app_id,product_url,product_alias,category,icon_url,created_at",
     order: "created_at.desc",
@@ -333,7 +361,7 @@ function renderEmpty(message) {
 function createSerialCell(index) {
   const cell = document.createElement("td");
   cell.className = "serial-cell";
-  cell.textContent = String(totalRecords - ((currentPage - 1) * PAGE_SIZE + index));
+  cell.textContent = String(totalRecords - ((currentPage - 1) * STORE_PAGE_SIZE + index));
   return cell;
 }
 
@@ -626,7 +654,7 @@ function renderRecords(records) {
 }
 
 function renderPagination() {
-  const totalPages = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalRecords / getCurrentPageSize()));
 
   prevPageBtn.disabled = currentPage <= 1;
   nextPageBtn.disabled = currentPage >= totalPages;
@@ -865,7 +893,7 @@ prevPageBtn.addEventListener("click", () => {
 });
 
 nextPageBtn.addEventListener("click", () => {
-  const totalPages = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalRecords / getCurrentPageSize()));
   if (currentPage < totalPages) {
     loadPage(currentPage + 1);
   }
@@ -886,4 +914,16 @@ categoryFilterMenu.addEventListener("click", (event) => {
 document.addEventListener("click", () => {
   closeCategoryMenus();
   categoryFilterMenu.classList.remove("is-open");
+});
+
+window.addEventListener("resize", () => {
+  if (currentContentType !== "icon") {
+    return;
+  }
+
+  window.clearTimeout(resizeTimer);
+  resizeTimer = window.setTimeout(() => {
+    const nextTotalPages = Math.max(1, Math.ceil(totalRecords / getIconPageSize()));
+    loadPage(Math.min(currentPage, nextTotalPages));
+  }, 180);
 });
