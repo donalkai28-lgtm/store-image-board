@@ -8,6 +8,20 @@
   </head>
   <body>
     <main class="page">
+      <section class="filters" aria-label="筛选区">
+        <div class="filter-group">
+          <span class="filter-label">内容</span>
+          <div class="segmented-control" role="tablist" aria-label="内容类型">
+            <button id="storeImagesFilter" class="is-active" type="button">商店图</button>
+            <button id="iconFilter" type="button">icon</button>
+          </div>
+        </div>
+        <div class="filter-group category-filter">
+          <span class="filter-label">品类</span>
+          <button id="categoryFilterBtn" class="category-filter-btn" type="button">全部品类</button>
+          <div id="categoryFilterMenu" class="category-filter-menu"></div>
+        </div>
+      </section>
       <section class="table-panel" aria-live="polite">
         <table class="asset-table">
           <thead>

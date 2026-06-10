@@ -7,11 +7,17 @@ const categoryOptions = document.querySelector("#categoryOptions");
 const prevPageBtn = document.querySelector("#prevPageBtn");
 const nextPageBtn = document.querySelector("#nextPageBtn");
 const pageInfo = document.querySelector("#pageInfo");
+const storeImagesFilter = document.querySelector("#storeImagesFilter");
+const iconFilter = document.querySelector("#iconFilter");
+const categoryFilterBtn = document.querySelector("#categoryFilterBtn");
+const categoryFilterMenu = document.querySelector("#categoryFilterMenu");
 const PAGE_SIZE = 15;
 let currentRecords = [];
 let currentPage = 1;
 let totalRecords = 0;
 let categoryValues = [];
+let selectedCategories = new Set();
+let currentContentType = "store-images";
 
 function showToast(message, type = "success") {
   toast.textContent = message;
@@ -57,6 +63,10 @@ async function fetchAssetRecords(page = 1) {
     select: "id,app_id,product_url,product_alias,captured_date,category,note,created_at,asset_images(image_url,sort_order)",
     order: "created_at.desc",
   });
+
+  if (selectedCategories.size > 0) {
+    query.set("category", `in.(${Array.from(selectedCategories).map((category) => `"${category.replaceAll('"', '\\"')}"`).join(",")})`);
+  }
 
   const response = await fetch(`${SUPABASE_URL}/rest/v1/asset_records?${query}`, {
     headers: {
@@ -277,6 +287,77 @@ function renderCategoryOptions(records) {
   );
 }
 
+function updateCategoryFilterLabel() {
+  if (selectedCategories.size === 0) {
+    categoryFilterBtn.textContent = "全部品类";
+    return;
+  }
+
+  categoryFilterBtn.textContent = `已选 ${selectedCategories.size} 个品类`;
+}
+
+function renderCategoryFilterMenu() {
+  categoryFilterMenu.replaceChildren();
+
+  if (categoryValues.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "category-filter-empty";
+    empty.textContent = "暂无品类";
+    categoryFilterMenu.append(empty);
+    return;
+  }
+
+  const allItem = document.createElement("label");
+  const allCheckbox = document.createElement("input");
+  allCheckbox.type = "checkbox";
+  allCheckbox.checked = selectedCategories.size === 0;
+  allCheckbox.addEventListener("change", () => {
+    selectedCategories.clear();
+    updateCategoryFilterLabel();
+    renderCategoryFilterMenu();
+    loadPage(1);
+  });
+  allItem.append(allCheckbox, document.createTextNode("全部"));
+  categoryFilterMenu.append(allItem);
+
+  for (const category of categoryValues) {
+    const item = document.createElement("label");
+    const checkbox = document.createElement("input");
+
+    checkbox.type = "checkbox";
+    checkbox.checked = selectedCategories.has(category);
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) {
+        selectedCategories.add(category);
+      } else {
+        selectedCategories.delete(category);
+      }
+
+      updateCategoryFilterLabel();
+      renderCategoryFilterMenu();
+      loadPage(1);
+    });
+
+    item.append(checkbox, document.createTextNode(category));
+    categoryFilterMenu.append(item);
+  }
+}
+
+function setContentType(type) {
+  currentContentType = type;
+  storeImagesFilter.classList.toggle("is-active", type === "store-images");
+  iconFilter.classList.toggle("is-active", type === "icon");
+
+  if (type === "icon") {
+    renderEmpty("icon 页面暂未接入数据。");
+    totalRecords = 0;
+    renderPagination();
+    return;
+  }
+
+  loadPage(1);
+}
+
 function closeCategoryMenus(exceptMenu = null) {
   for (const menu of document.querySelectorAll(".category-menu.is-open")) {
     if (menu !== exceptMenu) {
@@ -347,6 +428,10 @@ function renderPagination() {
 }
 
 async function loadPage(page) {
+  if (currentContentType !== "store-images") {
+    return;
+  }
+
   currentPage = page;
   renderEmpty("正在读取素材数据...");
 
@@ -462,6 +547,8 @@ async function deleteRecord(recordId) {
 async function initBoard() {
   try {
     categoryValues = await fetchCategoryValues();
+    updateCategoryFilterLabel();
+    renderCategoryFilterMenu();
     await loadPage(1);
   } catch (error) {
     renderEmpty(error.message);
@@ -483,6 +570,19 @@ nextPageBtn.addEventListener("click", () => {
   }
 });
 
+storeImagesFilter.addEventListener("click", () => setContentType("store-images"));
+iconFilter.addEventListener("click", () => setContentType("icon"));
+
+categoryFilterBtn.addEventListener("click", (event) => {
+  event.stopPropagation();
+  categoryFilterMenu.classList.toggle("is-open");
+});
+
+categoryFilterMenu.addEventListener("click", (event) => {
+  event.stopPropagation();
+});
+
 document.addEventListener("click", () => {
   closeCategoryMenus();
+  categoryFilterMenu.classList.remove("is-open");
 });
