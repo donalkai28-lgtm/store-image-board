@@ -1006,6 +1006,10 @@ h1 {
   margin-top: 14px;
 }
 
+.pagination[hidden] {
+  display: none;
+}
+
 .pagination button {
   border: 1px solid #dbe5f0;
   border-radius: 12px;
