@@ -18,6 +18,7 @@ const iconFilter = document.querySelector("#iconFilter");
 const singleImageFilter = document.querySelector("#singleImageFilter");
 const categoryFilterBtn = document.querySelector("#categoryFilterBtn");
 const categoryFilterMenu = document.querySelector("#categoryFilterMenu");
+const refreshPageBtn = document.querySelector("#refreshPageBtn");
 const STORE_PAGE_SIZE = 20;
 const SINGLE_IMAGE_LAYOUT = {
   columnWidth: 180,
@@ -1068,6 +1069,29 @@ async function initBoard() {
   }
 }
 
+async function refreshCurrentContent() {
+  refreshPageBtn.disabled = true;
+  refreshPageBtn.textContent = "刷新中";
+
+  try {
+    categoryValues = await fetchCategoryValues();
+    renderCategoryFilterMenu();
+
+    if (currentContentType === "single-image") {
+      await loadMoreSingleImages({ reset: true });
+    } else {
+      await loadPage(currentPage);
+    }
+
+    showToast("已刷新当前页面。");
+  } catch (error) {
+    showToast(`刷新失败：${error.message}`, "error");
+  } finally {
+    refreshPageBtn.disabled = false;
+    refreshPageBtn.textContent = "刷新";
+  }
+}
+
 initBoard();
 
 prevPageBtn.addEventListener("click", () => {
@@ -1086,6 +1110,7 @@ nextPageBtn.addEventListener("click", () => {
 storeImagesFilter.addEventListener("click", () => setContentType("store-images"));
 iconFilter.addEventListener("click", () => setContentType("icon"));
 singleImageFilter.addEventListener("click", () => setContentType("single-image"));
+refreshPageBtn.addEventListener("click", refreshCurrentContent);
 
 categoryFilterBtn.addEventListener("click", (event) => {
   event.stopPropagation();
