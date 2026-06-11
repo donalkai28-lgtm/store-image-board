@@ -18,6 +18,8 @@ const iconFilter = document.querySelector("#iconFilter");
 const singleImageFilter = document.querySelector("#singleImageFilter");
 const categoryFilterBtn = document.querySelector("#categoryFilterBtn");
 const categoryFilterMenu = document.querySelector("#categoryFilterMenu");
+const collectorFilterBtn = document.querySelector("#collectorFilterBtn");
+const collectorFilterMenu = document.querySelector("#collectorFilterMenu");
 const refreshPageBtn = document.querySelector("#refreshPageBtn");
 const STORE_PAGE_SIZE = 20;
 const SINGLE_IMAGE_LAYOUT = {
@@ -37,8 +39,11 @@ let currentRecords = [];
 let currentPage = 1;
 let totalRecords = 0;
 let categoryValues = [];
+let collectorValues = [];
 let selectedCategories = new Set();
+let selectedCollector = "";
 let currentContentType = "store-images";
+const loadedContentTypes = new Set();
 let resizeTimer = 0;
 let singleImageOffset = 0;
 let singleImageHasMore = true;
@@ -129,6 +134,10 @@ async function fetchAssetRecords(page = 1) {
     query.set("category", `in.(${Array.from(selectedCategories).map((category) => `"${category.replaceAll('"', '\\"')}"`).join(",")})`);
   }
 
+  if (selectedCollector) {
+    query.set("collector_name", `eq.${selectedCollector}`);
+  }
+
   const response = await fetch(`${SUPABASE_URL}/rest/v1/asset_records?${query}`, {
     headers: {
       apikey: SUPABASE_KEY,
@@ -165,6 +174,10 @@ async function fetchIconRecords(page = 1) {
     query.set("category", `in.(${Array.from(selectedCategories).map((category) => `"${category.replaceAll('"', '\\"')}"`).join(",")})`);
   }
 
+  if (selectedCollector) {
+    query.set("collector_name", `eq.${selectedCollector}`);
+  }
+
   const response = await fetch(`${SUPABASE_URL}/rest/v1/icon_records?${query}`, {
     headers: {
       apikey: SUPABASE_KEY,
@@ -195,6 +208,10 @@ async function fetchSingleImageRecords(offset = 0, limit = getSingleImageBatchSi
     select: "id,image_url,created_at",
     order: "created_at.desc",
   });
+
+  if (selectedCollector) {
+    query.set("collector_name", `eq.${selectedCollector}`);
+  }
 
   const response = await fetch(`${SUPABASE_URL}/rest/v1/single_images?${query}`, {
     headers: {
@@ -248,6 +265,40 @@ async function fetchCategoryValues() {
       results
         .flat()
         .map((row) => row.category)
+        .filter(Boolean),
+    ),
+  ].sort((a, b) => a.localeCompare(b, "zh-CN"));
+}
+
+async function fetchCollectorValues() {
+  const tables = ["asset_records", "icon_records", "single_images"];
+  const results = await Promise.all(
+    tables.map(async (table) => {
+      const query = new URLSearchParams({
+        select: "collector_name",
+        collector_name: "not.is.null",
+      });
+
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+        },
+      });
+
+      if (!response.ok) {
+        return [];
+      }
+
+      return response.json();
+    }),
+  );
+
+  return [
+    ...new Set(
+      results
+        .flat()
+        .map((row) => row.collector_name)
         .filter(Boolean),
     ),
   ].sort((a, b) => a.localeCompare(b, "zh-CN"));
@@ -666,7 +717,7 @@ function renderCategoryFilterMenu() {
     selectedCategories.clear();
     updateCategoryFilterLabel();
     renderCategoryFilterMenu();
-    loadPage(1);
+    reloadCurrentContentFromFilters();
   });
   allItem.append(allCheckbox, document.createTextNode("全部"));
   categoryFilterMenu.append(allItem);
@@ -686,11 +737,55 @@ function renderCategoryFilterMenu() {
 
       updateCategoryFilterLabel();
       renderCategoryFilterMenu();
-      loadPage(1);
+      reloadCurrentContentFromFilters();
     });
 
     item.append(checkbox, document.createTextNode(category));
     categoryFilterMenu.append(item);
+  }
+}
+
+function updateCollectorFilterLabel() {
+  collectorFilterBtn.textContent = selectedCollector || "全部";
+}
+
+function renderCollectorFilterMenu() {
+  collectorFilterMenu.replaceChildren();
+
+  const allItem = document.createElement("button");
+  allItem.type = "button";
+  allItem.textContent = "全部";
+  allItem.className = selectedCollector ? "" : "is-selected";
+  allItem.addEventListener("click", () => {
+    selectedCollector = "";
+    updateCollectorFilterLabel();
+    renderCollectorFilterMenu();
+    collectorFilterMenu.classList.remove("is-open");
+    reloadCurrentContentFromFilters();
+  });
+  collectorFilterMenu.append(allItem);
+
+  if (collectorValues.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "collector-filter-empty";
+    empty.textContent = "暂无角色";
+    collectorFilterMenu.append(empty);
+    return;
+  }
+
+  for (const collector of collectorValues) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.textContent = collector;
+    item.className = selectedCollector === collector ? "is-selected" : "";
+    item.addEventListener("click", () => {
+      selectedCollector = collector;
+      updateCollectorFilterLabel();
+      renderCollectorFilterMenu();
+      collectorFilterMenu.classList.remove("is-open");
+      reloadCurrentContentFromFilters();
+    });
+    collectorFilterMenu.append(item);
   }
 }
 
@@ -705,6 +800,10 @@ function setContentType(type) {
   pagination.hidden = type === "single-image";
   document.querySelector(".category-filter").hidden = type === "single-image";
   hideIconPreview();
+
+  if (loadedContentTypes.has(type)) {
+    return;
+  }
 
   if (type === "icon" || type === "single-image") {
     loadPage(1);
@@ -783,6 +882,11 @@ function renderPagination() {
   pageInfo.textContent = `第 ${currentPage} / ${totalPages} 页，共 ${totalRecords} 条`;
 }
 
+function reloadCurrentContentFromFilters() {
+  loadedContentTypes.delete(currentContentType);
+  loadPage(1);
+}
+
 async function loadMoreSingleImages({ reset = false } = {}) {
   if (isSingleImageLoading || (!singleImageHasMore && !reset)) {
     return;
@@ -809,6 +913,7 @@ async function loadMoreSingleImages({ reset = false } = {}) {
     renderSingleImageRecords(records, { append: !reset });
     singleImageOffset += records.length;
     singleImageHasMore = singleImageOffset < totalRecords && records.length > 0;
+    loadedContentTypes.add("single-image");
   } catch (error) {
     if (reset) {
       renderSingleImageEmpty(error.message);
@@ -835,6 +940,7 @@ async function loadPage(page) {
 
       renderIconRecords(records);
       renderPagination();
+      loadedContentTypes.add("icon");
       return;
     }
 
@@ -854,6 +960,7 @@ async function loadPage(page) {
 
     renderRecords(records);
     renderPagination();
+    loadedContentTypes.add("store-images");
   } catch (error) {
     totalRecords = 0;
     renderPagination();
@@ -1061,8 +1168,11 @@ async function deleteRecord(recordId) {
 async function initBoard() {
   try {
     categoryValues = await fetchCategoryValues();
+    collectorValues = await fetchCollectorValues();
     updateCategoryFilterLabel();
+    updateCollectorFilterLabel();
     renderCategoryFilterMenu();
+    renderCollectorFilterMenu();
     await loadPage(1);
   } catch (error) {
     renderEmpty(error.message);
@@ -1075,7 +1185,9 @@ async function refreshCurrentContent() {
 
   try {
     categoryValues = await fetchCategoryValues();
+    collectorValues = await fetchCollectorValues();
     renderCategoryFilterMenu();
+    renderCollectorFilterMenu();
 
     if (currentContentType === "single-image") {
       await loadMoreSingleImages({ reset: true });
@@ -1117,13 +1229,23 @@ categoryFilterBtn.addEventListener("click", (event) => {
   categoryFilterMenu.classList.toggle("is-open");
 });
 
+collectorFilterBtn.addEventListener("click", (event) => {
+  event.stopPropagation();
+  collectorFilterMenu.classList.toggle("is-open");
+});
+
 categoryFilterMenu.addEventListener("click", (event) => {
+  event.stopPropagation();
+});
+
+collectorFilterMenu.addEventListener("click", (event) => {
   event.stopPropagation();
 });
 
 document.addEventListener("click", () => {
   closeCategoryMenus();
   categoryFilterMenu.classList.remove("is-open");
+  collectorFilterMenu.classList.remove("is-open");
 });
 
 document.querySelector("#singleImagePreview").addEventListener("click", (event) => {

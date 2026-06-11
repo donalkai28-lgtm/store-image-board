@@ -17,6 +17,7 @@ npm run dev
 - 从 Supabase 读取 `asset_records` 和 `asset_images`。
 - icon 页面从 Supabase 读取 `icon_records`，建表 SQL 见 `supabase-icon.sql`。
 - 单图页面从 Supabase 读取 `single_images`，建表 SQL 见 `supabase-single-image.sql`。
+- 采集人字段迁移 SQL 见 `supabase-collector-fields.sql`。
 - 产品名可绑定来源链接并跳转。
 - 品类和备注支持在前端编辑，并保存回 Supabase。
 - 点击缩略图可在空白处查看大图。
