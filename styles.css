@@ -523,6 +523,7 @@ h1 {
 }
 
 .single-image-card {
+  position: relative;
   display: inline-block;
   overflow: hidden;
   width: 100%;
@@ -536,7 +537,32 @@ h1 {
 .single-image-card img {
   display: block;
   width: 100%;
-  height: auto;
+  max-height: 360px;
+  object-fit: cover;
+  cursor: zoom-in;
+}
+
+.single-image-delete-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: none;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-bottom-left-radius: 10px;
+  border-top-right-radius: 18px;
+  color: #fff;
+  background: #f87171;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 28px;
+  text-align: center;
+}
+
+.single-image-card:hover .single-image-delete-badge {
+  display: block;
 }
 
 .single-image-empty {
@@ -545,6 +571,28 @@ h1 {
   font-size: 16px;
   font-weight: 800;
   text-align: center;
+}
+
+.single-image-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgb(15 23 42 / 42%);
+}
+
+.single-image-preview[hidden] {
+  display: none;
+}
+
+.single-image-preview img {
+  display: block;
+  max-width: min(88vw, 1100px);
+  max-height: 88vh;
+  border-radius: 18px;
+  box-shadow: 0 24px 80px rgb(15 23 42 / 35%);
+  object-fit: contain;
 }
 
 .asset-table {

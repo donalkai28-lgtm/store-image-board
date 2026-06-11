@@ -410,13 +410,24 @@ function renderSingleImageEmpty(message) {
 function createSingleImageCard(record) {
   const card = document.createElement("article");
   const image = document.createElement("img");
+  const deleteBadge = document.createElement("button");
 
   card.className = "single-image-card";
+  card.dataset.recordId = record.id;
   image.src = record.image_url;
   image.alt = "单图素材";
   image.loading = "lazy";
+  image.addEventListener("click", () => showSingleImagePreview(record.image_url));
+  deleteBadge.className = "single-image-delete-badge";
+  deleteBadge.type = "button";
+  deleteBadge.textContent = "删";
+  deleteBadge.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    deleteSingleImage(record.id);
+  });
 
-  card.append(image);
+  card.append(image, deleteBadge);
   return card;
 }
 
@@ -906,6 +917,49 @@ async function deleteIcon(recordId) {
   showToast("已删除 icon 记录。");
 }
 
+function showSingleImagePreview(imageUrl) {
+  const preview = document.querySelector("#singleImagePreview");
+  const image = preview.querySelector("img");
+
+  image.src = imageUrl;
+  image.alt = "单图大图预览";
+  preview.hidden = false;
+}
+
+function hideSingleImagePreview() {
+  const preview = document.querySelector("#singleImagePreview");
+  const image = preview.querySelector("img");
+
+  preview.hidden = true;
+  image.removeAttribute("src");
+}
+
+async function deleteSingleImage(recordId) {
+  if (!window.confirm("确定删除这张单图吗？")) {
+    return;
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/single_images?id=eq.${recordId}`, {
+    method: "DELETE",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      Prefer: "return=minimal",
+    },
+  });
+
+  if (!response.ok) {
+    showToast(`删除失败：${response.status}`, "error");
+    return;
+  }
+
+  currentRecords = currentRecords.filter((record) => record.id !== recordId);
+  Array.from(singleImageGrid.querySelectorAll(".single-image-card"))
+    .find((card) => card.dataset.recordId === recordId)
+    ?.remove();
+  showToast("已删除单图。");
+}
+
 async function saveRecordEdits(recordId, row) {
   const category = row.querySelector('[data-field="category"]').value.trim();
   const note = row.querySelector('[data-field="note"]').value.trim();
@@ -1045,6 +1099,12 @@ categoryFilterMenu.addEventListener("click", (event) => {
 document.addEventListener("click", () => {
   closeCategoryMenus();
   categoryFilterMenu.classList.remove("is-open");
+});
+
+document.querySelector("#singleImagePreview").addEventListener("click", (event) => {
+  if (event.target.id === "singleImagePreview") {
+    hideSingleImagePreview();
+  }
 });
 
 window.addEventListener("resize", () => {
