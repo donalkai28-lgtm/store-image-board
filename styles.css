@@ -473,12 +473,17 @@ h1 {
 }
 
 .icon-name {
+  display: -webkit-box;
+  overflow: hidden;
+  width: 100%;
   color: #0f172a;
   font-size: 14px;
   font-weight: 900;
   line-height: 1.2;
   text-align: center;
   text-decoration: none;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .icon-name:hover {
