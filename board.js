@@ -9,6 +9,7 @@ const singleImagePanel = document.querySelector("#singleImagePanel");
 const singleImageGrid = document.querySelector("#singleImageGrid");
 const toast = document.querySelector("#toast");
 const categoryOptions = document.querySelector("#categoryOptions");
+const pagination = document.querySelector(".pagination");
 const prevPageBtn = document.querySelector("#prevPageBtn");
 const nextPageBtn = document.querySelector("#nextPageBtn");
 const pageInfo = document.querySelector("#pageInfo");
@@ -18,7 +19,12 @@ const singleImageFilter = document.querySelector("#singleImageFilter");
 const categoryFilterBtn = document.querySelector("#categoryFilterBtn");
 const categoryFilterMenu = document.querySelector("#categoryFilterMenu");
 const STORE_PAGE_SIZE = 20;
-const SINGLE_IMAGE_PAGE_SIZE = 60;
+const SINGLE_IMAGE_LAYOUT = {
+  columnWidth: 180,
+  gap: 16,
+  averageItemHeight: 220,
+  screensPerBatch: 3,
+};
 const ICON_LAYOUT = {
   columnWidth: 140,
   rowHeight: 220,
@@ -33,6 +39,9 @@ let categoryValues = [];
 let selectedCategories = new Set();
 let currentContentType = "store-images";
 let resizeTimer = 0;
+let singleImageOffset = 0;
+let singleImageHasMore = true;
+let isSingleImageLoading = false;
 
 function showToast(message, type = "success") {
   toast.textContent = message;
@@ -80,13 +89,22 @@ function getIconPageSize() {
   return columns * rows;
 }
 
+function getSingleImageBatchSize() {
+  const panelRect = singleImagePanel.getBoundingClientRect();
+  const panelWidth = panelRect.width || singleImagePanel.parentElement?.getBoundingClientRect().width || window.innerWidth;
+  const columns = Math.max(1, Math.floor((panelWidth + SINGLE_IMAGE_LAYOUT.gap) / (SINGLE_IMAGE_LAYOUT.columnWidth + SINGLE_IMAGE_LAYOUT.gap)));
+  const rowsPerScreen = Math.max(1, Math.ceil(window.innerHeight / SINGLE_IMAGE_LAYOUT.averageItemHeight));
+
+  return Math.max(12, columns * rowsPerScreen * SINGLE_IMAGE_LAYOUT.screensPerBatch);
+}
+
 function getCurrentPageSize() {
   if (currentContentType === "icon") {
     return getIconPageSize();
   }
 
   if (currentContentType === "single-image") {
-    return SINGLE_IMAGE_PAGE_SIZE;
+    return getSingleImageBatchSize();
   }
 
   return STORE_PAGE_SIZE;
@@ -169,9 +187,9 @@ async function fetchIconRecords(page = 1) {
   };
 }
 
-async function fetchSingleImageRecords(page = 1) {
-  const from = (page - 1) * SINGLE_IMAGE_PAGE_SIZE;
-  const to = from + SINGLE_IMAGE_PAGE_SIZE - 1;
+async function fetchSingleImageRecords(offset = 0, limit = getSingleImageBatchSize()) {
+  const from = offset;
+  const to = from + limit - 1;
   const query = new URLSearchParams({
     select: "id,image_url,created_at",
     order: "created_at.desc",
@@ -389,26 +407,34 @@ function renderSingleImageEmpty(message) {
   singleImageGrid.append(empty);
 }
 
-function renderSingleImageRecords(records) {
-  currentRecords = records;
-  singleImageGrid.replaceChildren();
+function createSingleImageCard(record) {
+  const card = document.createElement("article");
+  const image = document.createElement("img");
 
-  if (records.length === 0) {
+  card.className = "single-image-card";
+  image.src = record.image_url;
+  image.alt = "单图素材";
+  image.loading = "lazy";
+
+  card.append(image);
+  return card;
+}
+
+function renderSingleImageRecords(records, { append = false } = {}) {
+  if (!append) {
+    currentRecords = records;
+    singleImageGrid.replaceChildren();
+  } else {
+    currentRecords = [...currentRecords, ...records];
+  }
+
+  if (currentRecords.length === 0) {
     renderSingleImageEmpty("暂无单图数据。");
     return;
   }
 
   for (const record of records) {
-    const card = document.createElement("article");
-    const image = document.createElement("img");
-
-    card.className = "single-image-card";
-    image.src = record.image_url;
-    image.alt = "单图素材";
-    image.loading = "lazy";
-
-    card.append(image);
-    singleImageGrid.append(card);
+    singleImageGrid.append(createSingleImageCard(record));
   }
 }
 
@@ -664,6 +690,7 @@ function setContentType(type) {
   tablePanel.hidden = type !== "store-images";
   iconPanel.hidden = type !== "icon";
   singleImagePanel.hidden = type !== "single-image";
+  pagination.hidden = type === "single-image";
   document.querySelector(".category-filter").hidden = type === "single-image";
   hideIconPreview();
 
@@ -744,6 +771,43 @@ function renderPagination() {
   pageInfo.textContent = `第 ${currentPage} / ${totalPages} 页，共 ${totalRecords} 条`;
 }
 
+async function loadMoreSingleImages({ reset = false } = {}) {
+  if (isSingleImageLoading || (!singleImageHasMore && !reset)) {
+    return;
+  }
+
+  if (reset) {
+    singleImageOffset = 0;
+    singleImageHasMore = true;
+    currentRecords = [];
+    renderSingleImageEmpty("正在读取单图数据...");
+  }
+
+  isSingleImageLoading = true;
+
+  try {
+    const limit = getSingleImageBatchSize();
+    const { records, total } = await fetchSingleImageRecords(singleImageOffset, limit);
+
+    totalRecords = total;
+    if (reset) {
+      singleImageGrid.replaceChildren();
+    }
+
+    renderSingleImageRecords(records, { append: !reset });
+    singleImageOffset += records.length;
+    singleImageHasMore = singleImageOffset < totalRecords && records.length > 0;
+  } catch (error) {
+    if (reset) {
+      renderSingleImageEmpty(error.message);
+    } else {
+      showToast(error.message, "error");
+    }
+  } finally {
+    isSingleImageLoading = false;
+  }
+}
+
 async function loadPage(page) {
   currentPage = page;
   try {
@@ -763,17 +827,7 @@ async function loadPage(page) {
     }
 
     if (currentContentType === "single-image") {
-      renderSingleImageEmpty("正在读取单图数据...");
-      const { records, total } = await fetchSingleImageRecords(currentPage);
-      totalRecords = total;
-
-      if (records.length === 0 && currentPage > 1) {
-        await loadPage(currentPage - 1);
-        return;
-      }
-
-      renderSingleImageRecords(records);
-      renderPagination();
+      await loadMoreSingleImages({ reset: true });
       return;
     }
 
@@ -1003,4 +1057,17 @@ window.addEventListener("resize", () => {
     const nextTotalPages = Math.max(1, Math.ceil(totalRecords / getIconPageSize()));
     loadPage(Math.min(currentPage, nextTotalPages));
   }, 180);
+});
+
+window.addEventListener("scroll", () => {
+  if (currentContentType !== "single-image" || isSingleImageLoading || !singleImageHasMore) {
+    return;
+  }
+
+  const scrollBottom = window.scrollY + window.innerHeight;
+  const triggerLine = document.documentElement.scrollHeight - window.innerHeight * 1.2;
+
+  if (scrollBottom >= triggerLine) {
+    loadMoreSingleImages();
+  }
 });
